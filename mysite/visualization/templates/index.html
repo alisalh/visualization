@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MovieReview</title>
+    <script src="../static/js/echarts.js"></script>
+    <script src="../static/js/echarts-wordcloud.js"></script>
+</head>
+<body>
+     <div style="width: 1200px">
+         <div id="main1" style="width: 600px; height: 400px; margin: 0; float: left"></div>
+         <div id="main3" style="width: 600px; height: 400px; margin: 0; float: left"></div>
+     </div>
+     <div style="width: 600px; height: 40px; margin:-20px 0 10px; float: left; text-align: center">
+         <h5>关键词的词云分布</h5>
+     </div>
+     <div style="width: 600px; height: 40px; margin:-20px 0 10px; float: left; text-align: center">
+         <h5 id="h1"></h5>
+     </div>
+     <div style="width: 1200px; height: 50px; margin:10px 0 -30px; float: left; text-align: center">
+         <h5 id="h2"></h5>
+     </div>
+     <div id="main2" style="width: 1200px; height: 400px; margin: 0; float: left"></div>
+
+     <script type="text/javascript">
+         var words = {{ topics_json|safe }};
+         var words_info = {{ topics_info_json|safe }};
+         var files_name = {{ files_name_list|safe }};
+         var words_percent = {{ topics_percent_json|safe }};
+
+         var wordcloud_chart = echarts.init(document.getElementById('main1'));
+         var bar_chart = echarts.init(document.getElementById('main2'));
+         var pie_chart = echarts.init(document.getElementById('main3'));
+
+         var wordcloud_option = {
+             series:[{
+                 type:'wordCloud',
+                 gridSize:2,
+                 sizeRange:[12,50],
+                 rotationRange:[-90, 90],
+                 shape:'circle',
+                 width:600,
+                 height:400,
+                 drawOutOfBound:true,
+                 textStyle: {
+                        normal: {
+                            color: function () {
+                                return 'rgb(' + [
+                                    Math.round(Math.random() * 160),
+                                    Math.round(Math.random() * 160),
+                                    Math.round(Math.random() * 160)
+                                ].join(',') + ')';
+                            }
+                        },
+                        emphasis: {
+                            shadowBlur: 10,
+                            shadowColor: '#333'
+                        }
+                    },
+                 data: words
+             }]
+         };
+         wordcloud_chart.setOption(wordcloud_option);
+         wordcloud_chart.on('click', drawChart);
+
+         function drawChart(param) {
+            drawBar(param);
+            drawPie(param);
+         }
+
+         function drawBar(param){
+             var word = words_info.filter(function (item) {
+                 return item.word == param.name;
+             });
+             var names = [];
+             for(var i=0;i<word[0].name.length;i++)
+                 names.push(files_name[word[0].name[i]]);
+
+             var bar_option = {
+                 grid:{
+                     y2:150
+                 },
+                 tooltip:{
+                     trigger:'item'
+                 },
+                 xAxis:[{
+                     type:'category',
+                     data: names,
+                     axisLabel:{
+                         interval:0,
+                         rotate:"45"
+                     }
+                 }],
+                 yAxis:[{
+                     type:'value'
+                 }],
+                 series:[{
+                     type:'bar',
+                     data:word[0].value,
+                     barWidth: 15
+                 }]
+             };
+             bar_chart.setOption(bar_option);
+             document.getElementById("h1").innerHTML = '文章中"'+param.name+'"的比例分布';
+         }
+
+         function drawPie(param){
+             var word = words_percent.filter(function (item) {
+                 return item.word == param.name;
+             });
+
+             var res =[];
+             for(var i=0;i<word[0].name.length;i++){
+                 if(word[0].value[i] > 0.01){
+                     res.push({
+                     name:files_name[word[0].name[i]],
+                     value:word[0].value[i]
+                     });
+                 }
+             }
+
+             var pie_option = {
+                 tooltip:{
+                     trigger:'item'
+                 },
+                 series:[{
+                     type:'pie',
+                     radius:'55%',
+                     center:['50%','60%'],
+                     data:res
+                 }]
+             };
+             pie_chart.setOption(pie_option);
+             document.getElementById("h2").innerHTML = '文章中"'+param.name+'"出现的次数统计';
+         }
+     </script>
+</body>
+</html>
